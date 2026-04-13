@@ -1,4 +1,4 @@
-name:  CI/CD
+name: CI/CD
 
 on:
   push:
@@ -8,52 +8,85 @@ on:
 
 jobs:
   validate:
+    name:  Validate Files
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-
       - name: List Files
         run: ls -la
 
-  
-      - name: Check index.html
+      - name: Check Required Files
         run: |
           if [ ! -f index.html ]; then
-            echo " index.html not found"
+            echo " index.html missing"
             exit 1
-          else
-            echo " index.html found"
           fi
-
-
-      - name: Check style.css
-        run: |
           if [ ! -f style.css ]; then
-            echo " style.css not found"
+            echo " style.css missing"
             exit 1
-          else
-            echo " style.css found"
           fi
+          echo "Files exist"
 
-
-      - name: Validate HTML content
+      - name: Validate HTML
         run: |
           if grep -q "<html" index.html && grep -q "</html>" index.html; then
-            echo " HTML structure looks valid"
+            echo " HTML valid"
           else
-            echo "HTML structure invalid"
+            echo " HTML invalid"
             exit 1
           fi
-
 
       - name: Validate CSS
         run: |
           if grep -q "{" style.css && grep -q "}" style.css; then
-            echo " CSS structure looks valid"
+            echo " CSS valid"
           else
-            echo " CSS structure invalid"
+            echo " CSS invalid"
             exit 1
           fi
+
+  build:
+    name: Build Project
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Create Build Folder
+        run: |
+          mkdir dist
+          cp index.html dist/
+          cp style.css dist/
+
+      - name: Verify Build
+        run: ls dist
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: website
+          path: dist
+
+  deploy:
+    name: Deploy Website
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: website
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: dist
