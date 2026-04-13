@@ -1,22 +1,59 @@
-name: CI/CD
+name:  CI/CD
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Check Files
+
+      - name: List Files
+        run: ls -la
+
+  
+      - name: Check index.html
         run: |
-          echo "Project files:"
-          ls 
-           
+          if [ ! -f index.html ]; then
+            echo " index.html not found"
+            exit 1
+          else
+            echo " index.html found"
+          fi
 
-          
 
+      - name: Check style.css
+        run: |
+          if [ ! -f style.css ]; then
+            echo " style.css not found"
+            exit 1
+          else
+            echo " style.css found"
+          fi
+
+
+      - name: Validate HTML content
+        run: |
+          if grep -q "<html" index.html && grep -q "</html>" index.html; then
+            echo " HTML structure looks valid"
+          else
+            echo "HTML structure invalid"
+            exit 1
+          fi
+
+
+      - name: Validate CSS
+        run: |
+          if grep -q "{" style.css && grep -q "}" style.css; then
+            echo " CSS structure looks valid"
+          else
+            echo " CSS structure invalid"
+            exit 1
+          fi
